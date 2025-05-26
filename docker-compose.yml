@@ -1,14 +1,14 @@
-version: "3.8"  # Using a more recent version of Docker Compose for better compatibility
+version: "3.8"
 
 services:
   taiga-db:
     image: postgres:12.3
     environment:
       POSTGRES_DB: "taiga"
-      POSTGRES_USER: "${POSTGRES_USER}"
-      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_USER: "${POSTGRES_USER}" # Must be set in Coolify UI
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}" # Must be set in Coolify UI
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"] # Uses var from Coolify UI
       interval: 2s
       timeout: 15s
       retries: 5
@@ -29,7 +29,7 @@ services:
       TAIGA_SITES_SCHEME: "${TAIGA_SCHEME}"
       TAIGA_SITES_DOMAIN: "${TAIGA_DOMAIN}"
       TAIGA_SUBPATH: "${SUBPATH}"
-      EMAIL_BACKEND: "django.core.mail.backends.${EMAIL_BACKEND}.EmailBackend"
+      EMAIL_BACKEND: "django.core.mail.backends.${EMAIL_BACKEND}.EmailBackend" # Inner ${EMAIL_BACKEND} set in UI
       DEFAULT_FROM_EMAIL: "${EMAIL_DEFAULT_FROM}"
       EMAIL_USE_TLS: "${EMAIL_USE_TLS}"
       EMAIL_USE_SSL: "${EMAIL_USE_SSL}"
@@ -48,7 +48,7 @@ services:
     depends_on:
       taiga-db:
         condition: service_healthy
-      taiga-async-rabbitmq:
+      taiga-async-rabbitmq: # Corrected dependency here
         condition: service_started
 
   taiga-async:
@@ -101,9 +101,9 @@ services:
   taiga-front:
     image: taigaio/taiga-front:latest
     environment:
-      TAIGA_URL: "${TAIGA_SCHEME}://${TAIGA_DOMAIN}"
-      TAIGA_WEBSOCKETS_URL: "${WEBSOCKETS_SCHEME}://${TAIGA_DOMAIN}"
-      TAIGA_SUBPATH: "${SUBPATH}"
+      TAIGA_URL: "${TAIGA_SCHEME}://${TAIGA_DOMAIN}" # Will use TAIGA_SCHEME & TAIGA_DOMAIN from Coolify UI
+      TAIGA_WEBSOCKETS_URL: "${WEBSOCKETS_SCHEME}://${TAIGA_DOMAIN}" # Will use WEBSOCKETS_SCHEME & TAIGA_DOMAIN
+      TAIGA_SUBPATH: "${SUBPATH}" # Will use SUBPATH from Coolify UI
     networks:
       - taiga
 
@@ -142,10 +142,9 @@ services:
 
   taiga-gateway:
     image: nginx:1.19-alpine
-    #ports:
-    #  - "9000:80" # Expose the gateway port (optional, see below)
+    # No 'ports' here if Coolify manages FQDN and SSL via its reverse proxy
     volumes:
-      - ./taiga-gateway/taiga.conf:/etc/nginx/conf.d/default.conf
+      - ./taiga-gateway/taiga.conf:/etc/nginx/conf.d/default.conf # Path relative to Coolify's app storage
       - taiga-static-data:/taiga/static
       - taiga-media-data:/taiga/media
     networks:
